@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Практическая №4. Создание открыток</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .controls select {
+            flex: 1;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .history-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .history-container h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 150px;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-text {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            word-break: break-word;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        .theme-light {
+            background: #ffffff;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+
+        .theme-dark {
+            background: #2c3e50;
+            color: #ecf0f1;
+        }
+
+        .theme-newyear {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 3px dashed #c62828;
+            background-image: radial-gradient(#c62828 15%, transparent 16%),
+                              radial-gradient(#c62828 15%, transparent 16%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+
+        .theme-romantic {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            color: #880e4f;
+        }
+
+        .theme-space {
+            background: #0b0c10;
+            color: #66fcf1;
+            border: 1px solid #45a29e;
+            background-image: radial-gradient(white 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .theme-mint {
+            background: #a8e6cf;
+            color: #1b5e20;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Создание открыток</h2>
+
+    <div class="form-container">
+        <div class="input-group">
+            <label for="cardText">Текст открытки:</label>
+            <input type="text" id="cardText" placeholder="Введите поздравление...">
+        </div>
+        <div class="input-group">
+            <label for="cardFrom">От кого:</label>
+            <input type="text" id="cardFrom" placeholder="Ваше имя...">
+        </div>
+        <div class="input-group">
+            <label for="cardTo">Кому:</label>
+            <input type="text" id="cardTo" placeholder="Имя получателя...">
+        </div>
+
+        <div class="controls">
+            <button id="sendBtn" disabled>Отправить</button>
+            <select id="themeSelect">
+                <option value="theme-light">Светлая</option>
+                <option value="theme-dark">Темная</option>
+                <option value="theme-newyear">Новогодняя</option>
+                <option value="theme-romantic">Романтичная</option>
+                <option value="theme-space">Космическая</option>
+                <option value="theme-mint">Мятная</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="history-container">
+        <h3>История открыток</h3>
+        <div id="cardsGrid" class="cards-grid"></div>
+    </div>
+
+    <script>
+        const cardText = document.getElementById('cardText');
+        const cardFrom = document.getElementById('cardFrom');
+        const cardTo = document.getElementById('cardTo');
+        const sendBtn = document.getElementById('sendBtn');
+        const themeSelect = document.getElementById('themeSelect');
+        const cardsGrid = document.getElementById('cardsGrid');
+
+        const STORAGE_KEY = 'my_postcards_history';
+
+        function checkInputs() {
+            if (cardText.value.trim() !== '' && 
+                cardFrom.value.trim() !== '' && 
+                cardTo.value.trim() !== '') {
+                sendBtn.disabled = false;
+            } else {
+                sendBtn.disabled = true;
+            }
+        }
+
+        cardText.addEventListener('input', checkInputs);
+        cardFrom.addEventListener('input', checkInputs);
+        cardTo.addEventListener('input', checkInputs);
+
+        function createCardElement(cardData) {
+            const card = document.createElement('div');
+            card.className = `card ${cardData.theme}`;
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'card-text';
+            textDiv.textContent = cardData.text;
+
+            const footerDiv = document.createElement('div');
+            footerDiv.className = 'card-footer';
+            
+            const fromSpan = document.createElement('span');
+            fromSpan.textContent = `От: ${cardData.from}`;
+            
+            const toSpan = document.createElement('span');
+            toSpan.textContent = `Кому: ${cardData.to}`;
+
+            footerDiv.appendChild(fromSpan);
+            footerDiv.appendChild(toSpan);
+            card.appendChild(textDiv);
+            card.appendChild(footerDiv);
+
+            return card;
+        }
+
+        function loadCards() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                const cardsArray = JSON.parse(savedData);
+                cardsArray.forEach(cardData => {
+                    const cardElement = createCardElement(cardData);
+                    cardsGrid.appendChild(cardElement);
+                });
+            }
+        }
+
+        function saveCard() {
+            const newCard = {
+                text: cardText.value.trim(),
+                from: cardFrom.value.trim(),
+                to: cardTo.value.trim(),
+                theme: themeSelect.value
+            };
+
+            const cardElement = createCardElement(newCard);
+            cardsGrid.prepend(cardElement);
+
+            let existingCards = [];
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                existingCards = JSON.parse(savedData);
+            }
+            existingCards.unshift(newCard);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(existingCards));
+
+            cardText.value = '';
+            cardFrom.value = '';
+            cardTo.value = '';
+            
+            checkInputs();
+            cardText.focus();
+        }
+
+        sendBtn.addEventListener('click', saveCard);
+
+        loadCards();
+    </script>
+</body>
+</html>
